@@ -32,15 +32,15 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   //
 ////////////////////////////////////////////////////////////////////////////
 
-#ifndef ZFILE_H
-#define ZFILE_H
+#ifndef FAKEZFILE_H
+#define FAKEZFILE_H
 
 #include <fcntl.h>
 #include <cstdio>
 #include <string>
 #include <cstring>
 #include <stdexcept>
-#include "util/FastIO.h"
+#include "util/ZFile.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -48,71 +48,45 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class ZFile {
-protected:
-    FILE *      _file;
-    std::string _filename;
-    std::string _mode;
+class FakeZFile : public ZFile {
+ protected:
+  /* don't call this */
+  FILE *processOpen(const std::string &command, const char *mode) { }
+  vector<char*> buffer;
+  int index = 0;
+ public:
+  // It will not FREE the char*s
+  FakeZFile(vector<char*> & buffer){ 
+    this.buffer = buffer;
+  }
+  ~FakeZFile() { }
 
-    bool endsWith(const char *str, const char *suffix) {
-        size_t strLen = strlen(str);
-        size_t suffixLen = strlen(suffix);
-        return (suffixLen <= strLen) &&
-               (strncmp(&str[strLen - suffixLen], suffix, suffixLen) == 0);
+  void ReOpen() { }
+  operator FILE *() const { return 0; }
+
+  virtual bool getline( char *buf, size_t bufSize ) {
+    int outLen = 0;
+    return this.getline( buf, bufSize, &outLen );
+  }
+
+  
+  virtual bool getline( char *buf, size_t bufSize, size_t *outLen ) {
+    if (index < buffer.size()) {      
+      strncpy( buf, buffer[index++], bufSize );
+      size_t len = strlen(buf) - 1;
+      *outLen = len;
+      if (len >= bufSize) {
+        Logger::Error(1, "The following exceeded max length.\n%s\n", buf);
+      } else if (buf[len] == '\n') {
+        buf[len] = '\0';
+      }
+      return true;
+    } else {
+      return false;
     }
-
-    FILE *processOpen(const std::string &command, const char *mode)
-    { return popen(command.c_str(), mode); }
-
-public:
-    ZFile(const char *filename, const char *mode="r") {
-        if (mode == NULL || (mode[0] != 'r' && mode[0] != 'w'))
-            throw std::runtime_error("Invalid mode");
-
-        _filename = filename;
-	if(mode[0] == 'r')
-	{
-            _mode = O_BINARY ? "rb" : "r";
-	}
-	else if(mode[0] == 'w')
-	{
-            _mode = O_BINARY ? "wb" : "w";
-	}
-        ReOpen();
-    }
-    ~ZFile() { if (_file) fclose(_file); }
-
-    void ReOpen() {
-        const char *mode = _mode.c_str();
-        if (endsWith(_filename.c_str(), ".gz")) {
-            _file = (_mode[0] == 'r') ?
-                processOpen(std::string("exec gunzip -c ") + _filename, mode) :
-                processOpen(std::string("exec gzip -c > ") + _filename, mode);
-        } else if (endsWith(_filename.c_str(), ".bz2")) {
-            _file = (_mode[0] == 'r') ?
-                processOpen(std::string("exec bunzip2 -c ") + _filename, mode) :
-                processOpen(std::string("exec bzip2 > ") + _filename, mode);
-        } else if (endsWith(_filename.c_str(), ".zip")) {
-            _file = (_mode[0] == 'r') ?
-                processOpen(std::string("exec unzip -c ") + _filename, mode) :
-                processOpen(std::string("exec zip -q > ") + _filename, mode);
-        } else { // Assume uncompressed
-            _file = fopen(_filename.c_str(), mode);
-        }
-        if (_file == NULL)
-            throw std::runtime_error("Cannot open file");
-    }
-
-    operator FILE *() const { return _file; }
-
-    virtual bool getline( char *buf, size_t bufSize ) {
-      return getline( _file, buf, bufSize );
-    }
-    virtual bool getline( char *buf, size_t bufSize, size_t *outLen ) {
-      return getline( _file, buf, bufSize, outLen );
-    }
+  }
 
 
 };
 
-#endif // ZFILE_H
+#endif // FAKEZFILE_H

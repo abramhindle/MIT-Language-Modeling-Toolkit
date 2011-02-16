@@ -73,6 +73,40 @@ const char *footerDesc =
 
 ////////////////////////////////////////////////////////////////////////////////
 
+double average(vector<double> & perps) {
+  double perp = 0;
+  int n = perps.size();
+  for (size_t i = 0; i < n; i++) {
+    perp += perps[ i ];
+  }
+  return (perp / n);
+}
+
+void evaluatePerplexityWithCrossFolds(int folds, CommandOptions & opts) {
+  NgramLM lm(order);
+  Logger::Log(1, "Loading eval set %s...\n", opts["text"]); // [i].c_str());
+  CrossFolder cf(opts["text"], folds);
+  vector<double> perps;  
+  while ( cf.foldsLeft() ) {
+    lm.InitializeWithText(opts["vocab"], AsBoolean(opts["unk"]), 
+                          cf.getTrainingSet(), opts["counts"], 
+                          opts["smoothing"], opts["weight-features"]);
+    
+    Logger::Log(0, "Perplexity Evaluations:\n");
+    PerplexityOptimizer eval(lm, order);
+    eval.LoadCorpus( cf.getTestSet() );
+    double perp = eval.ComputePerplexity(params);
+    Logger::Log(0, "\t%s\t%.3f\n", cf.getFoldName().c_str(),
+                perp);
+    perps.push_back( perp );
+    cf.nextFold(); /* load the next fold */
+  }
+  Logger::Log(0, "Perplexity Evaluations:\n");  
+  Logger::Log(0, "\t%s\t%.3f\n", cf.getFoldName().c_str(),
+              average(perps));
+}
+
+
 int main(int argc, char* argv[]) {
     // Parse command line options.
     CommandOptions opts(headerDesc, footerDesc);
@@ -103,6 +137,7 @@ int main(int argc, char* argv[]) {
     opts.AddOption("ep,eval-perp", "Compute test set perplexity.");
     opts.AddOption("ew,eval-wer", "Compute test set lattice word error rate.");
     opts.AddOption("em,eval-margin", "Compute test set lattice margin.");
+    opts.AddOption("f,fold", "Evaluate Perplexity with 10-fold cross validation","0");
     if (!opts.ParseArguments(argc, (const char **)argv) ||
         opts["help"] != NULL) {
         std::cout << std::endl;
@@ -118,6 +153,13 @@ int main(int argc, char* argv[]) {
     if (!opts["text"] && !opts["counts"]) {
         Logger::Error(1, "Specify training data using -text or -counts.\n");
         exit(1);
+    }
+
+    size_t folds = atoi(opts["fold"]);
+
+    if (folds > 0) {
+      evaluatePerplexityWithCrossFolds( opts, folds );
+      return 0;
     }
 
     // Build language model.
