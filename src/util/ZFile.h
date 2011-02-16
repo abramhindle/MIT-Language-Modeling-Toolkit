@@ -82,7 +82,7 @@ public:
         ReOpen();
     }
     ~ZFile() { if (_file) fclose(_file); }
-
+    
     void ReOpen() {
         const char *mode = _mode.c_str();
         if (endsWith(_filename.c_str(), ".gz")) {
@@ -104,7 +104,7 @@ public:
             throw std::runtime_error("Cannot open file");
     }
 
-    operator FILE *() const { return _file; }
+    virtual operator FILE *() const { return _file; }
 
     virtual bool getLine( char *buf, size_t bufSize ) {
       return getline( _file, buf, bufSize );

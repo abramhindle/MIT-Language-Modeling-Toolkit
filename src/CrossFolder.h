@@ -11,9 +11,9 @@ class CrossFolder {
  protected:
   int folds;
   int currentFold;
-  vector<char *> lines;
-  vector<char *> testset;
-  vector<char *> trainingset;
+  std::vector<char *> lines;
+  std::vector<char *> testset;
+  std::vector<char *> trainingset;
   int * indices;
   char * filename;
  public:
@@ -28,6 +28,8 @@ class CrossFolder {
   std::auto_ptr< ZFile> testSet();
   std::auto_ptr< ZFile> trainingSet();
 };
+
+
 
 #endif
 

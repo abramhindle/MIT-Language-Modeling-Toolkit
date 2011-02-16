@@ -47,6 +47,7 @@
 #include "NgramLM.h"
 #include "Smoothing.h"
 #include "CrossFolder.h"
+#include <cstdlib>
 
 using std::string;
 using std::vector;
@@ -58,52 +59,61 @@ using std::stringstream;
 
 void shuffle( int * arr , int n ) {
   for ( int i = n - 1 ; i >= 1 ; i-- ) {
-    int r = int( i * rand() / (RAND_MAX + 1.0) );
+    int r = int( i * ((double)rand()) / (double)(RAND_MAX + 1.0) );
+    // Logger::Log(0, "Shuffle: %d -- %d\n", i, r);
+
     int tmp = arr[ i ];
     arr[ i ] = arr[ r ];
     arr[ r ] = tmp;
   }
 }
 
-CrossFolder::CrossFolder( const char * fileName, int folds ) {
-  ZFile file( fileName );
+
+CrossFolder::CrossFolder( const char * ourFileName, int ourFolds ): lines(), testset(), trainingset() {
+  folds = ourFolds;
+  filename = NULL;
+  ZFile file( ourFileName );
   char line[MAXLINE];
   {
-    int len = strnlen( fileName, MAXLINE ) + 1;
+    int len = strnlen( ourFileName, MAXLINE ) + 1;
     filename = new char[ len ];
     filename[ len - 1 ] = '\0';
-    strncpy( filename, fileName, len - 1 );
+    strncpy( filename, ourFileName, len - 1 );
   }
 
 
   // Read the file
   while (file.getLine( line, MAXLINE )) {
+
     int len = strnlen( line, MAXLINE ) + 1;
     char * str = new char[ len ];
     str[len - 1] = '\0'; // is this needed?
-    strncpy( str, line, MAXLINE );
+    strncpy( str, line, len );
     lines.push_back( str );
   }
 
-  // Generate the folds
+  // Generate the folds 
   int n = lines.size();
   indices = new int[ n ];
   for (int i = 0; i < n ; i++ ) {
     indices[ i ] = folds * i / n;
+    // Logger::Log(0, "Have: %d -- %s\n", indices[ i ] , lines[ i ]);
   }
-
+  shuffle( indices, n );
+  // for (int i = 0; i < n ; i++ ) {
+  //  Logger::Log(0, "Have: %d -- %s\n", indices[ i ] , lines[ i ]);
+  // }
   currentFold = -1; // HACK
   nextFold();
 
 }
 
 CrossFolder::~CrossFolder() {
-  free( indices );
+  delete indices;
   for (int i = 0; i < lines.size() ; i++ ) {
-    free( lines[ i ] );
+    delete lines[ i ];
   }
-  free( filename );
-  free( indices );
+  delete filename;  
 }
 
 void CrossFolder::nextFold() {

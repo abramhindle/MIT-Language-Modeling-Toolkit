@@ -65,11 +65,12 @@ class FakeZFile : public ZFile {
   FakeZFile(vector<char*> & bbuffer){ 
     buffer = bbuffer;
     index = 0;
+    _file = NULL; // avoid closing it
   }
-  ~FakeZFile() { }
 
   void ReOpen() { }
-  operator FILE *() const { return 0; }
+  /* stupid hack */
+  virtual operator FILE *() const { return (FILE*)-1; }
 
   virtual bool getLine( char *buf, size_t bufSize ) {
     size_t outLen = 0;
@@ -79,11 +80,13 @@ class FakeZFile : public ZFile {
   
   virtual bool getLine( char *buf, size_t bufSize, size_t *outLen ) {
     if (index < buffer.size()) {      
-      strncpy( buf, buffer[index++], bufSize );
-      size_t len = strlen(buf) - 1;
+      strncpy( buf, buffer[index++], bufSize );      
+      size_t len = strlen(buf);
+      // Logger::Log(0, "READ LINE: %s\n", buf);
+
       *outLen = len;
-      if (len >= bufSize) {
-        Logger::Error(1, "The following exceeded max length.\n%s\n", buf);
+      if ( len >= bufSize) {
+        Logger::Error(1, "The following exceeded max length.[%d >= %d]\n[%s]\n", len, bufSize, buf);
       } else if (buf[len] == '\n') {
         buf[len] = '\0';
       }

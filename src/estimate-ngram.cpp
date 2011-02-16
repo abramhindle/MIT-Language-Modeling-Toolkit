@@ -36,7 +36,7 @@
 
 #include <vector>
 #include <string>
-
+#include <cstdlib>
 
 #include "util/CommandOptions.h"
 
@@ -104,29 +104,46 @@ double average(vector<double> & perps) {
   return (perp / n);
 }
 
-void evaluatePerplexityWithCrossFolds(int order, int folds, CommandOptions & opts) {
-  Logger::Log(1, "Loading eval set %s...\n", opts["text"]); // [i].c_str());
-  CrossFolder cf( opts["text"], folds);
+int evaluatePerplexityWithCrossFolds(int order, int folds, int repeats, CommandOptions & opts) {
   vector<double> perps;  
-  while ( cf.foldsLeft() ) {
-    NgramLM lm(order);
-    lm.Initialize(opts["vocab"], AsBoolean(opts["unk"]), 
-                          *cf.trainingSet(), opts["counts"], 
-                          opts["smoothing"], opts["weight-features"]);
-    ParamVector params(lm.defParams());
-
-    Logger::Log(0, "Perplexity Evaluations:\n");
-    PerplexityOptimizer eval(lm, order);
-    eval.LoadCorpus( *cf.testSet() );
-    double perp = eval.ComputePerplexity(params);
-    Logger::Log(0, "\t%s\t%.3f\n", cf.getFoldName().c_str(),
-                perp);
-    perps.push_back( perp );
-    cf.nextFold(); /* load the next fold */
+  vector<double> logs;  
+  for (int k = 0 ; k < repeats; k++) {
+    Logger::Log(1, "Loading eval set %s...\n", opts["text"]); // [i].c_str());
+    CrossFolder cf( opts["text"], folds);
+    while ( cf.foldsLeft() ) {
+      NgramLM lm(order);
+      lm.Initialize(opts["vocab"], AsBoolean(opts["unk"]), 
+                    *(cf.trainingSet()), opts["counts"], 
+                    opts["smoothing"], opts["weight-features"]);
+      Logger::Log(0, "Parameters:\n");
+      ParamVector params(lm.defParams());
+      
+      Logger::Log(0, "Perplexity Evaluations:\n");
+      PerplexityOptimizer eval(lm, order);
+      Logger::Log(0, "Perplexity load Corpus:\n");
+      eval.LoadCorpus( *(cf.testSet()) );
+      Logger::Log(0, "Compute Perplexity:\n");
+      double perp = eval.ComputePerplexity(params);
+      Logger::Log(0, "\t%s\t%.3f\n", cf.getFoldName().c_str(),
+                  perp);
+      Logger::Log(0, "Compute Cross Entropy:\n");
+      double cross = log(perp)/log(2);
+      Logger::Log(0, "\t%s\t%.3f\n", cf.getFoldName().c_str(),
+                  cross);
+      perps.push_back( perp );
+      logs.push_back( cross );
+      
+      cf.nextFold(); /* load the next fold */
+    }
   }
   Logger::Log(0, "Perplexity Evaluations:\n");  
-  Logger::Log(0, "\t%s\t%.3f\n", cf.getFoldName().c_str(),
+  Logger::Log(0, "\t%s\t%.3f\n", opts["text"],
               average(perps));
+  Logger::Log(0, "Cross Entropy Evaluations:\n");  
+  Logger::Log(0, "\t%s\t%.3f\n", opts["text"],
+              average(logs));
+  
+  return 0;
 }
 
 
@@ -160,7 +177,10 @@ int main(int argc, char* argv[]) {
     opts.AddOption("ep,eval-perp", "Compute test set perplexity.");
     opts.AddOption("ew,eval-wer", "Compute test set lattice word error rate.");
     opts.AddOption("em,eval-margin", "Compute test set lattice margin.");
-    opts.AddOption("f,fold", "Evaluate Perplexity with 10-fold cross validation","0");
+    opts.AddOption("f,fold", "Evaluate Perplexity with N-fold cross validation","0");
+    opts.AddOption("rs,seed", "The random seed for srand", "0");
+    opts.AddOption("repeat,repeat", "Repeat the calculation", "1");
+
     if (!opts.ParseArguments(argc, (const char **)argv) ||
         opts["help"] != NULL) {
         std::cout << std::endl;
@@ -170,6 +190,13 @@ int main(int argc, char* argv[]) {
 
     // Process basic command line arguments.
     size_t order = atoi(opts["order"]);
+    int repeats = atoi(opts["repeat"]);
+    if (repeats < 1) {
+      Logger::Error(1, "Too few repetitions!\n");
+    }
+    int     seed  = atoi(opts["seed"]);
+    srand( ((seed==0)?time( NULL ):seed) );
+
     bool writeBinary = AsBoolean(opts["write-binary"]);
     Logger::SetVerbosity(atoi(opts["verbose"]));
 
@@ -180,9 +207,11 @@ int main(int argc, char* argv[]) {
 
     size_t folds = atoi(opts["fold"]);
 
-    if (folds > 0) {
-      evaluatePerplexityWithCrossFolds( order, folds, opts );
-      return 0;
+    if (folds != 0) {
+      if (folds < 2) {
+        Logger::Error(1, "Too few folds!\n");
+      }
+      return evaluatePerplexityWithCrossFolds( order, folds, repeats, opts );
     }
 
     // Build language model.

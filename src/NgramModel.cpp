@@ -72,7 +72,7 @@ NgramModel::SaveVocab(ZFile &vocabFile, bool asBinary) const {
 void
 NgramModel::LoadCorpus(vector<CountVector> &countVectors,
                        ZFile &corpusFile, bool reset) {
-    if (corpusFile == NULL) throw std::invalid_argument("Invalid file");
+    if (corpusFile == NULL) throw std::invalid_argument("Invalid file (corpusFile is NULL)");
 
     // Resize vectors and allocate counts.
     countVectors.resize(size());

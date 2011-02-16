@@ -246,10 +246,14 @@ NgramLM::Initialize(const char *vocab, bool useUnknown,
   initializeReadVocabulary( vocab, useUnknown );
 
   string corpusFile;
-  Logger::Log(1, "Loading cached corpus ...\n");
+  Logger::Log(1, "Loading cached corpus [%d] ...\n", textCorpus==NULL);
   LoadCorpus( textCorpus );
+  Logger::Log(1, "Loaded cached corpus ...\n");
+
   initializeRest( vocab, useUnknown, counts, smoothingDesc, featureDesc, "cachedCorpus" );
   // Read language model input files.
+  Logger::Log(1, "Done Initialize");
+  
 
 }
 
@@ -318,6 +322,8 @@ NgramLM::SetSmoothingAlgs(const vector<SharedPtr<Smoothing> > &smoothings) {
     }
 
     // Allocate and initialize variables.
+    Logger::Log(1, "Allocate and init smoothing\n");
+
     for (size_t o = 0; o < _order; ++o) {
         size_t len = _pModel->sizes(o);
         _probVectors[o].reset(len);
@@ -326,12 +332,14 @@ NgramLM::SetSmoothingAlgs(const vector<SharedPtr<Smoothing> > &smoothings) {
     _probVectors[_order].reset(_pModel->sizes(_order));
 
     // Compute 0th order probability.
+    Logger::Log(1, "Compute 0th order\n");
     if (vocab().IsFixedVocab())
         _probVectors[0][0] = Prob(1.0 / sizes(1));
     else
         _probVectors[0][0] = Prob(1.0 / sum(_countVectors[1] > 0));
 
     // Compute default parameters.
+    Logger::Log(1, "Compute Default Parameters\n");
     _paramStarts.reset(_order + 2);
     VectorBuilder<Param> builder;
     for (size_t o = 1; o <= _order; ++o) {
@@ -340,6 +348,8 @@ NgramLM::SetSmoothingAlgs(const vector<SharedPtr<Smoothing> > &smoothings) {
     }
     _paramStarts[_order + 1] = builder.length();
     _defParams = builder;
+    Logger::Log(1, "Done Smoothing\n");
+
 }
 
 void
