@@ -1,15 +1,9 @@
-#ifndef NGRAMLM_H
-#define NGRAMLM_H
+#ifndef CROSSFOLDER_H
+#define CROSSFOLDER_H
 
+#include <memory>
 #include <vector>
-#include "util/SharedPtr.h"
-#include "Types.h"
-#include "Vocab.h"
-#include "NgramModel.h"
-#include "Smoothing.h"
-#include "Mask.h"
 
-using std::vector;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -18,11 +12,23 @@ class CrossFolder {
   int folds;
   int currentFold;
   vector<char *> lines;
-  
+  vector<char *> testset;
+  vector<char *> trainingset;
+  int * indices;
+  char * filename;
  public:
-  CrossFolder( char * filename, int folds );
-  int getFolds() { return this.folds; }
+  CrossFolder( const char * filename, int folds );
+  ~CrossFolder();
+  int getFolds();
+  // Iterate to the next fold
+  // - testSet() and trainingSet() will return new files
   void nextFold();
-  void foldsLeft() { return currentFold < folds; }
-  
-}
+  bool foldsLeft();
+  string getFoldName();
+  std::auto_ptr< ZFile> testSet();
+  std::auto_ptr< ZFile> trainingSet();
+};
+
+#endif
+
+

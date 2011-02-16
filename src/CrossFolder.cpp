@@ -32,88 +32,108 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   //
 ////////////////////////////////////////////////////////////////////////////
 
-#ifndef ZFILE_H
-#define ZFILE_H
-
-#include <fcntl.h>
-#include <cstdio>
 #include <string>
-#include <cstring>
-#include <stdexcept>
-#include "FastIO.h"
+#include <vector>
+#include <algorithm>
+#include <iostream>
+#include <sstream>
 
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
+#include "util/FastIO.h"
+#include "util/ZFile.h"
+#include "util/FakeZFile.h"
+#include "util/CommandOptions.h"
+#include "Types.h"
+#include "NgramModel.h"
+#include "NgramLM.h"
+#include "Smoothing.h"
+#include "CrossFolder.h"
+
+using std::string;
+using std::vector;
+using std::stringstream;
+
+#define MAXLINE 4096
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class ZFile {
-protected:
-    FILE *      _file;
-    std::string _filename;
-    std::string _mode;
+void shuffle( int * arr , int n ) {
+  for ( int i = n - 1 ; i >= 1 ; i-- ) {
+    int r = int( i * rand() / (RAND_MAX + 1.0) );
+    int tmp = arr[ i ];
+    arr[ i ] = arr[ r ];
+    arr[ r ] = tmp;
+  }
+}
 
-    bool endsWith(const char *str, const char *suffix) {
-        size_t strLen = strlen(str);
-        size_t suffixLen = strlen(suffix);
-        return (suffixLen <= strLen) &&
-               (strncmp(&str[strLen - suffixLen], suffix, suffixLen) == 0);
+CrossFolder::CrossFolder( const char * fileName, int folds ) {
+  ZFile file( fileName );
+  char line[MAXLINE];
+  {
+    int len = strnlen( fileName, MAXLINE ) + 1;
+    filename = new char[ len ];
+    filename[ len - 1 ] = '\0';
+    strncpy( filename, fileName, len - 1 );
+  }
+
+
+  // Read the file
+  while (file.getLine( line, MAXLINE )) {
+    int len = strnlen( line, MAXLINE ) + 1;
+    char * str = new char[ len ];
+    str[len - 1] = '\0'; // is this needed?
+    strncpy( str, line, MAXLINE );
+    lines.push_back( str );
+  }
+
+  // Generate the folds
+  int n = lines.size();
+  indices = new int[ n ];
+  for (int i = 0; i < n ; i++ ) {
+    indices[ i ] = folds * i / n;
+  }
+
+  currentFold = -1; // HACK
+  nextFold();
+
+}
+
+CrossFolder::~CrossFolder() {
+  free( indices );
+  for (int i = 0; i < lines.size() ; i++ ) {
+    free( lines[ i ] );
+  }
+  free( filename );
+  free( indices );
+}
+
+void CrossFolder::nextFold() {
+  currentFold++;
+  testset.clear();
+  trainingset.clear();
+  for(int i = 0 ; i < lines.size(); i++ ) {
+    if ( indices[ i ] == currentFold ) {
+      testset.push_back( lines[ i ] );
+    } else {
+      trainingset.push_back( lines[ i ] );
     }
+  }
+}
 
-    FILE *processOpen(const std::string &command, const char *mode)
-    { return popen(command.c_str(), mode); }
-    ZFile() {} /* left here for inheritance purposes */
+std::auto_ptr< ZFile> CrossFolder::testSet() {
+  std::auto_ptr< ZFile> zfile( new FakeZFile( testset  ) );
+  return zfile;
+}
 
-public:
-    ZFile(const char *filename, const char *mode="r") {
-        if (mode == NULL || (mode[0] != 'r' && mode[0] != 'w'))
-            throw std::runtime_error("Invalid mode");
+std::auto_ptr< ZFile> CrossFolder::trainingSet() {
+  std::auto_ptr< ZFile> zfile( new FakeZFile( trainingset  ) );
+  return zfile;
+}
 
-        _filename = filename;
-	if(mode[0] == 'r')
-	{
-            _mode = O_BINARY ? "rb" : "r";
-	}
-	else if(mode[0] == 'w')
-	{
-            _mode = O_BINARY ? "wb" : "w";
-	}
-        ReOpen();
-    }
-    ~ZFile() { if (_file) fclose(_file); }
+string CrossFolder::getFoldName() {
+  stringstream out( stringstream::in );
+  out << currentFold;
+  return (((string)filename) + ":" + out.str());
+}
 
-    void ReOpen() {
-        const char *mode = _mode.c_str();
-        if (endsWith(_filename.c_str(), ".gz")) {
-            _file = (_mode[0] == 'r') ?
-                processOpen(std::string("exec gunzip -c ") + _filename, mode) :
-                processOpen(std::string("exec gzip -c > ") + _filename, mode);
-        } else if (endsWith(_filename.c_str(), ".bz2")) {
-            _file = (_mode[0] == 'r') ?
-                processOpen(std::string("exec bunzip2 -c ") + _filename, mode) :
-                processOpen(std::string("exec bzip2 > ") + _filename, mode);
-        } else if (endsWith(_filename.c_str(), ".zip")) {
-            _file = (_mode[0] == 'r') ?
-                processOpen(std::string("exec unzip -c ") + _filename, mode) :
-                processOpen(std::string("exec zip -q > ") + _filename, mode);
-        } else { // Assume uncompressed
-            _file = fopen(_filename.c_str(), mode);
-        }
-        if (_file == NULL)
-            throw std::runtime_error("Cannot open file");
-    }
-
-    operator FILE *() const { return _file; }
-
-    virtual bool getLine( char *buf, size_t bufSize ) {
-      return getline( _file, buf, bufSize );
-    }
-    virtual bool getLine( char *buf, size_t bufSize, size_t *outLen ) {
-      return getline( _file, buf, bufSize, outLen );
-    }
-
-
-};
-
-#endif // ZFILE_H
+int CrossFolder::getFolds() { return folds; }
+bool CrossFolder::foldsLeft() { return (currentFold < folds); };

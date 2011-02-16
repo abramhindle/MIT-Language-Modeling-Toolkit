@@ -42,7 +42,8 @@ mitlmutilinc_HEADERS= \
 	src/util/Logger.h \
 	src/util/SharedPtr.h \
 	src/util/BitOps.h \
-	src/util/FastHash.h
+	src/util/FastHash.h \
+	src/util/FakeZFile.h
 
 mitlmvectorinc_HEADERS= \
 	src/vector/Range.h \
@@ -69,7 +70,8 @@ mitlminc_HEADERS= \
 	src/InterpolatedNgramLM.h \
 	src/NgramLM.h \
 	src/NgramModel.h \
-	src/Types.h
+	src/Types.h \
+	src/CrossFolder.h 
 
 
 
@@ -89,7 +91,8 @@ libmitlm_la_SOURCES = \
 	src/InterpolatedNgramLM.cpp \
 	src/optimize/lbfgs.f \
 	src/optimize/lbfgsb.f \
-	src/WordErrorRateOptimizer.cpp
+	src/WordErrorRateOptimizer.cpp \
+	src/CrossFolder.cpp
 
 libmitlm_la_LIBADD = $(FLIBS)
 

@@ -40,7 +40,10 @@
 #include <string>
 #include <cstring>
 #include <stdexcept>
+#include <vector>
 #include "util/ZFile.h"
+
+using std::vector;
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -51,26 +54,30 @@
 class FakeZFile : public ZFile {
  protected:
   /* don't call this */
-  FILE *processOpen(const std::string &command, const char *mode) { }
-  vector<char*> buffer;
-  int index = 0;
+  // FILE *processOpen(const std::string &command, const char *mode) { }
+
+  vector< char *> buffer;
+  int index;
+
  public:
+
   // It will not FREE the char*s
-  FakeZFile(vector<char*> & buffer){ 
-    this.buffer = buffer;
+  FakeZFile(vector<char*> & bbuffer){ 
+    buffer = bbuffer;
+    index = 0;
   }
   ~FakeZFile() { }
 
   void ReOpen() { }
   operator FILE *() const { return 0; }
 
-  virtual bool getline( char *buf, size_t bufSize ) {
-    int outLen = 0;
-    return this.getline( buf, bufSize, &outLen );
+  virtual bool getLine( char *buf, size_t bufSize ) {
+    size_t outLen = 0;
+    return getLine( buf, bufSize, &outLen );
   }
 
   
-  virtual bool getline( char *buf, size_t bufSize, size_t *outLen ) {
+  virtual bool getLine( char *buf, size_t bufSize, size_t *outLen ) {
     if (index < buffer.size()) {      
       strncpy( buf, buffer[index++], bufSize );
       size_t len = strlen(buf) - 1;

@@ -151,10 +151,8 @@ ArpaNgramLM::LoadLM(ZFile &lmFile) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void
-NgramLM::Initialize(const char *vocab, bool useUnknown,
-                    const char *text, const char *counts,
-                    const char *smoothingDesc, const char *featureDesc) {
+// This is broken out to make initialization easier
+void NgramLM::initializeReadVocabulary( const char *vocab, bool useUnknown ) {
     // Read vocabulary.
     if (useUnknown) {
         Logger::Log(1, "Replace unknown words with <unk>...\n");
@@ -165,29 +163,26 @@ NgramLM::Initialize(const char *vocab, bool useUnknown,
         ZFile vocabZFile(vocab);
         LoadVocab(vocabZFile);
     }
-    
-    // Read language model input files.
-    string corpusFile;
-    if (text) {
-        vector<string> textFiles;
-        trim_split(textFiles, text, ',');
-        for (size_t i = 0; i < textFiles.size(); i++) {
-            Logger::Log(1, "Loading corpus %s...\n", textFiles[i].c_str());
-            ZFile corpusZFile(ZFile(textFiles[i].c_str()));
-            LoadCorpus(corpusZFile);
-            if (corpusFile.length() == 0) corpusFile = textFiles[i].c_str();
-        }
+}
+
+// This is broken out to make initialization easier
+
+void
+NgramLM::initializeRest(const char *vocab, bool useUnknown,
+                        const char *counts,
+                        const char *smoothingDesc, const char *featureDesc, string corpusFile) {
+
+
+  if (counts) {
+    vector<string> countsFiles;
+    trim_split(countsFiles, counts, ',');
+    for (size_t i = 0; i < countsFiles.size(); i++) {
+      Logger::Log(1, "Loading counts %s...\n", countsFiles[i].c_str());
+      ZFile countsZFile(ZFile(countsFiles[i].c_str()));
+      LoadCounts(countsZFile);
+      if (corpusFile.length() == 0) corpusFile = countsFiles[i].c_str();
     }
-    if (counts) {
-        vector<string> countsFiles;
-        trim_split(countsFiles, counts, ',');
-        for (size_t i = 0; i < countsFiles.size(); i++) {
-            Logger::Log(1, "Loading counts %s...\n", countsFiles[i].c_str());
-            ZFile countsZFile(ZFile(countsFiles[i].c_str()));
-            LoadCounts(countsZFile);
-            if (corpusFile.length() == 0) corpusFile = countsFiles[i].c_str();
-        }
-    }
+  }
 
     // Process n-gram weighting features.
     if (featureDesc) {
@@ -224,6 +219,41 @@ NgramLM::Initialize(const char *vocab, bool useUnknown,
     Logger::Log(1, "Set smoothing algorithms...\n");
     SetSmoothingAlgs(smoothingAlgs);
 }
+
+void
+NgramLM::Initialize(const char *vocab, bool useUnknown,
+                    const char *text, const char *counts,
+                    const char *smoothingDesc, const char *featureDesc) {
+  initializeReadVocabulary( vocab, useUnknown );
+  string corpusFile;
+  if (text) {
+    vector<string> textFiles;
+    trim_split(textFiles, text, ',');
+    for (size_t i = 0; i < textFiles.size(); i++) {
+      Logger::Log(1, "Loading corpus %s...\n", textFiles[i].c_str());
+      ZFile corpusZFile(ZFile(textFiles[i].c_str()));
+      LoadCorpus(corpusZFile);
+      if (corpusFile.length() == 0) corpusFile = textFiles[i].c_str();
+    }
+  }
+  initializeRest( vocab, useUnknown, counts, smoothingDesc, featureDesc, corpusFile );
+
+}
+void
+NgramLM::Initialize(const char *vocab, bool useUnknown,
+                    ZFile & textCorpus, const char *counts,
+                    const char *smoothingDesc, const char *featureDesc) {
+  initializeReadVocabulary( vocab, useUnknown );
+
+  string corpusFile;
+  Logger::Log(1, "Loading cached corpus ...\n");
+  LoadCorpus( textCorpus );
+  initializeRest( vocab, useUnknown, counts, smoothingDesc, featureDesc, "cachedCorpus" );
+  // Read language model input files.
+
+}
+
+
 
 void
 NgramLM::LoadCorpus(ZFile &corpusFile, bool reset) {

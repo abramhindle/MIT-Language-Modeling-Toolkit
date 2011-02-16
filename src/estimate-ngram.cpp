@@ -32,15 +32,39 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   //
 ////////////////////////////////////////////////////////////////////////////
 
+
+
 #include <vector>
+#include <string>
+
+
 #include "util/CommandOptions.h"
+
+
+
 #include "util/ZFile.h"
+
+
+
 #include "util/Logger.h"
 #include "Types.h"
 #include "NgramLM.h"
+
+
 #include "Smoothing.h"
 #include "PerplexityOptimizer.h"
+
+
+
 #include "WordErrorRateOptimizer.h"
+
+
+#include "CrossFolder.h"
+
+using std::vector;
+using std::string;
+
+
 
 #ifdef F77_DUMMY_MAIN
 #  ifdef __cplusplus
@@ -49,8 +73,6 @@ extern "C"
 int F77_DUMMY_MAIN () { return 1; }
 #endif
 
-using std::vector;
-using std::string;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -82,19 +104,20 @@ double average(vector<double> & perps) {
   return (perp / n);
 }
 
-void evaluatePerplexityWithCrossFolds(int folds, CommandOptions & opts) {
-  NgramLM lm(order);
+void evaluatePerplexityWithCrossFolds(int order, int folds, CommandOptions & opts) {
   Logger::Log(1, "Loading eval set %s...\n", opts["text"]); // [i].c_str());
-  CrossFolder cf(opts["text"], folds);
+  CrossFolder cf( opts["text"], folds);
   vector<double> perps;  
   while ( cf.foldsLeft() ) {
-    lm.InitializeWithText(opts["vocab"], AsBoolean(opts["unk"]), 
-                          cf.getTrainingSet(), opts["counts"], 
+    NgramLM lm(order);
+    lm.Initialize(opts["vocab"], AsBoolean(opts["unk"]), 
+                          *cf.trainingSet(), opts["counts"], 
                           opts["smoothing"], opts["weight-features"]);
-    
+    ParamVector params(lm.defParams());
+
     Logger::Log(0, "Perplexity Evaluations:\n");
     PerplexityOptimizer eval(lm, order);
-    eval.LoadCorpus( cf.getTestSet() );
+    eval.LoadCorpus( *cf.testSet() );
     double perp = eval.ComputePerplexity(params);
     Logger::Log(0, "\t%s\t%.3f\n", cf.getFoldName().c_str(),
                 perp);
@@ -158,7 +181,7 @@ int main(int argc, char* argv[]) {
     size_t folds = atoi(opts["fold"]);
 
     if (folds > 0) {
-      evaluatePerplexityWithCrossFolds( opts, folds );
+      evaluatePerplexityWithCrossFolds( order, folds, opts );
       return 0;
     }
 

@@ -89,7 +89,7 @@ NgramModel::LoadCorpus(vector<CountVector> &countVectors,
     char line[MAXLINE];
     vector<VocabIndex> words(256);
     vector<NgramIndex> hists(size(), -1);
-    while (getline(corpusFile, line, MAXLINE)) {
+    while (corpusFile.getLine( line, MAXLINE)) {
         if (strncmp(line, "<DOC ", 5) == 0 || strcmp(line, "</DOC>") == 0)
             continue;
 
@@ -169,7 +169,7 @@ NgramModel::LoadCounts(vector<CountVector> &countVectors,
     // Accumulate counts for each n-gram in counts file.
     char                    line[MAXLINE];
     vector<VocabIndex> words(256);
-    while (getline(countsFile, line, MAXLINE)) {
+    while (countsFile.getLine( line, MAXLINE)) {
         if (line[0] == '\0' || line[0] == '#') continue;
 
         words.clear();
@@ -261,9 +261,9 @@ NgramModel::LoadLM(vector<ProbVector> &probVectors,
     char           line[MAXLINE];
     size_t         o, len;
     vector<size_t> ngramLengths(1);
-    while (getline(lmFile, line, MAXLINE) && strcmp(line, "\\data\\") != 0)
+    while (lmFile.getLine( line, MAXLINE) && strcmp(line, "\\data\\") != 0)
         /* NOP */;
-    while (getline(lmFile, line, MAXLINE)) {
+    while (lmFile.getLine( line, MAXLINE)) {
         unsigned int o, len;
         if (sscanf(line, "ngram %u=%u", &o, &len) != 2)
             break;
@@ -287,17 +287,17 @@ NgramModel::LoadLM(vector<ProbVector> &probVectors,
         probs.reset(ngramLengths[o]);
         if (hasBow) bows.reset(ngramLengths[o]);
 
-        getline(lmFile, line, MAXLINE);
+        lmFile.getLine( line, MAXLINE);
         unsigned int i;
         if (sscanf(line, "\\%u-ngrams:", &i) != 1 || i != o) {
             throw std::invalid_argument("Unexpected file format.");
         }
         while (true) {
-            getline(lmFile, line, MAXLINE);
-            size_t lineLen = strlen(line);
-            if (line[0] == '\0') break;  // Empty line ends section.
-            char *p = &line[0];
-
+          lmFile.getLine( line, MAXLINE);
+          size_t lineLen = strlen(line);
+          if (line[0] == '\0') break;  // Empty line ends section.
+          char *p = &line[0];
+          
             // Read log probability.
             Prob prob = (Prob)pow(10.0, strtod(p, &p)); p++;
 
@@ -340,7 +340,7 @@ NgramModel::LoadLM(vector<ProbVector> &probVectors,
     }
 
     // Read ARPA LM footer.
-    while (getline(lmFile, line, MAXLINE) &&
+    while (lmFile.getLine( line, MAXLINE) &&
            strcmp(line, "\\end\\") != 0)  /* NOP */;
 
     // Sort and resize probs/bows to actual size.
@@ -485,7 +485,7 @@ NgramModel::LoadEvalCorpus(vector<CountVector> &probCountVectors,
     size_t                  numOOV = 0;
     size_t                  numWords = 0;
     vector<VocabIndex> words(256);
-    while (getline(corpusFile, line, MAXLINE)) {
+    while (corpusFile.getLine( line, MAXLINE)) {
         if (strncmp(line, "<DOC ", 5) == 0 || strcmp(line, "</DOC>") == 0)
             continue;
 
@@ -544,7 +544,7 @@ NgramModel::LoadFeatures(vector<DoubleVector> &featureVectors,
     // Load feature value for each n-gram in feature file.
     char                    line[MAXLINE];
     vector<VocabIndex> words(256);
-    while (getline(featureFile, line, MAXLINE)) {
+    while (featureFile.getLine(line, MAXLINE)) {
         if (line[0] == '\0' || line[0] == '#') continue;
         words.clear();
         char *p = &line[0];
@@ -865,7 +865,7 @@ NgramModel::_LoadFrequency(vector<DoubleVector> &freqVectors,
     char line[MAXLINE];
     vector<VocabIndex> words(256);
     vector<NgramIndex> hists(maxSize);
-    while (getline(corpusFile, line, MAXLINE)) {
+    while (corpusFile.getLine( line, MAXLINE)) {
         if (strcmp(line, "</DOC>") == 0) {
             // Accumulate frequency.
             numDocs++;
@@ -944,7 +944,7 @@ NgramModel::_LoadEntropy(vector<DoubleVector> &entropyVectors,
     char line[MAXLINE];
     vector<VocabIndex> words(256);
     vector<NgramIndex> hists(maxSize);
-    while (getline(corpusFile, line, MAXLINE)) {
+    while (corpusFile.getLine( line, MAXLINE)) {
         if (strcmp(line, "</DOC>") == 0) {
             // Accumulate frequency.
             numDocs++;
@@ -1028,7 +1028,7 @@ NgramModel::_LoadTopicProbs(vector<DoubleVector> &topicProbVectors,
     VocabIndex  word;
     int         state, topic;
     size_t      lastTopicState = maxSize;
-    while (getline(hmmldaFile, line, MAXLINE)) {
+    while (hmmldaFile.getLine( line, MAXLINE)) {
         if (line[0] == '#') continue;  // Skip comment lines.
         int numItems = sscanf(line, "%s\t%d\t%d\n", wordStr, &state, &topic);
         if (numItems != 3) throw std::invalid_argument("Bad format");
@@ -1094,7 +1094,7 @@ NgramModel::_LoadTopicProbs2(vector<DoubleVector> &topicProbVectors,
     char        wordStr[1024];
     VocabIndex  word;
     int         state, topic;
-    while (getline(hmmldaFile, line, MAXLINE)) {
+    while (hmmldaFile.getLine( line, MAXLINE)) {
         if (line[0] == '#') continue;  // Skip comment lines.
         int numItems = sscanf(line, "%s\t%d\t%d\n", wordStr, &state, &topic);
         if (numItems != 3) throw std::invalid_argument("Bad format");

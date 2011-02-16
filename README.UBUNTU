@@ -1,0 +1,2 @@
+# RUN THIS: 
+F77=gfortran ./autogen.sh 

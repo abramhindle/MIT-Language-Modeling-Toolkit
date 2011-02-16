@@ -36,6 +36,7 @@
 #define NGRAMLM_H
 
 #include <vector>
+#include <string>
 #include "util/SharedPtr.h"
 #include "Types.h"
 #include "Vocab.h"
@@ -44,6 +45,7 @@
 #include "Mask.h"
 
 using std::vector;
+using std::string;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -103,6 +105,11 @@ protected:
     vector<CountVector>            _countVectors;
     vector<FeatureVectors>         _featureList;
     IntVector                      _paramStarts;
+    void initializeReadVocabulary( const char *vocab, bool useUnknown );
+    void initializeRest(const char *vocab, bool useUnknown,
+                        const char *counts,
+                        const char *smoothingDesc, const char *featureDesc, string corpusFile);
+
 
 public:
     NgramLM(size_t order = 3) : NgramLMBase(order), _countVectors(order + 1),
@@ -110,6 +117,10 @@ public:
     void Initialize(const char *vocab, bool useUnknown,
                     const char *text, const char *counts,
                     const char *smoothing, const char *features);
+    void Initialize(const char *vocab, bool useUnknown,
+                    ZFile & text, const char *counts,
+                    const char *smoothing, const char *features);
+
     void LoadCorpus(ZFile &corpusFile, bool reset=false);
     void LoadCounts(ZFile &countsFile, bool reset=false);
     void SaveCounts(ZFile &countsFile, bool asBinary=false) const;
