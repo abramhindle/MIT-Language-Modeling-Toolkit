@@ -147,6 +147,33 @@ int evaluatePerplexityWithCrossFolds(int order, int folds, int repeats, CommandO
 }
 
 
+
+int liveMode(int order,  CommandOptions & opts) {
+  vector<double> perps;  
+  vector<double> logs;  
+  Logger::Log(1, "Loading eval set %s...\n", opts["text"]); // [i].c_str());
+  CrossFolder cf( opts["text"], folds);
+  NgramLM lm(order);
+  lm.Initialize(opts["vocab"], AsBoolean(opts["unk"]), 
+                opts["text"], opts["counts"], 
+                opts["smoothing"], opts["weight-features"]);
+  Logger::Log(0, "Parameters:\n");
+  ParamVector params(lm.defParams());
+
+  Logger::Log(0, "Live Guess:\n");
+  LiveGuess eval(lm, order);
+
+  // get command
+  // if command is add corpus
+  eval.addToCorpus( str );
+  // if command is estimate
+  eval.estimate( str, nestimates);
+  // if command is exit
+  
+  return 0;
+}
+
+
 int main(int argc, char* argv[]) {
     // Parse command line options.
     CommandOptions opts(headerDesc, footerDesc);
