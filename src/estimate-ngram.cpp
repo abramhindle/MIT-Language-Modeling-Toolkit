@@ -61,6 +61,8 @@
 
 #include "CrossFolder.h"
 
+#define BUFFERSIZE 4096
+
 using std::vector;
 using std::string;
 
@@ -151,8 +153,8 @@ int evaluatePerplexityWithCrossFolds(int order, int folds, int repeats, CommandO
 int liveMode(int order,  CommandOptions & opts) {
   vector<double> perps;  
   vector<double> logs;  
+  char buffer[BUFFERSIZE];
   Logger::Log(1, "Loading eval set %s...\n", opts["text"]); // [i].c_str());
-  CrossFolder cf( opts["text"], folds);
   NgramLM lm(order);
   lm.Initialize(opts["vocab"], AsBoolean(opts["unk"]), 
                 opts["text"], opts["counts"], 
@@ -162,12 +164,20 @@ int liveMode(int order,  CommandOptions & opts) {
 
   Logger::Log(0, "Live Guess:\n");
   LiveGuess eval(lm, order);
-
+  
+  // issue: how many entries to predict?
+  
+  while( getline( stdin, buffer, BUFFERSIZE ) ) {
+    results = eval.estimate( buffer , 50 );
+  }
+  
   // get command
   // if command is add corpus
-  eval.addToCorpus( str );
+  //  Make an N-Gram model based on the read in text 
+  //  extend the original n-gram model (extend) with the new model
+  // eval.addToCorpus( str );
   // if command is estimate
-  eval.estimate( str, nestimates);
+  // eval.estimate( str, nestimates);
   // if command is exit
   
   return 0;
