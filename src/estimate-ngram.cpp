@@ -167,8 +167,13 @@ int liveMode(int order,  CommandOptions & opts) {
   
   // issue: how many entries to predict?
   
-  while( getline( stdin, buffer, BUFFERSIZE ) ) {
-    results = eval.estimate( buffer , 50 );
+  while( getline( stdin, buffer, BUFFERSIZE ) ) {    
+    std::auto_ptr< std::vector<LiveGuessResult> > results = eval.Predict( buffer , 50 );
+    int n = results->size();
+    for (size_t i = 0; i < n; i++) {
+      LiveGuessResult res = (*results)[ i ];
+      Logger::Log(0, "\t%f\t%s\n", res.probability, res.str);
+    }    
   }
   
   // get command
