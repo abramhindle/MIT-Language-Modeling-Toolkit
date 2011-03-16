@@ -48,22 +48,19 @@ using std::vector;
 class LiveGuessResult {
  protected:
   int _size;
-
-
-
  public:
   char * str;
   double probability;
   LiveGuessResult(double prob, char * cstr)
-    : probability(prob), str(null), _size (0) {
+    : probability(prob), str(NULL), _size (0) {
     /* ugh hack is there a better way */
     _size = strlen(cstr);
-    str = new char[ cstr ];
+    str = new char[ _size ];
   }
   ~LiveGuessResult() {
     delete[] str;
   }
-}
+};
 
 class LiveGuess {
  protected:
@@ -74,7 +71,7 @@ class LiveGuess {
  LiveGuess(NgramLMBase &lm, size_t order=3)
    : _lm(lm), _order(order) { };
   
-  std::auto_ptr< std::vector<LiveGuessResult> > predict
+  std::auto_ptr< std::vector<LiveGuessResult> > Predict( char * str, int predictions );
   
 };
 

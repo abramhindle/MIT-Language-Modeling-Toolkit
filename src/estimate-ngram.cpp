@@ -169,7 +169,9 @@ int liveMode(int order,  CommandOptions & opts) {
   // issue: how many entries to predict?
   
   while( getline( stdin, buffer, BUFFERSIZE ) ) {    
+    Logger::Log(0, "Live Guess Input:%s\n", buffer);
     std::auto_ptr< std::vector<LiveGuessResult> > results = eval.Predict( buffer , 50 );
+    Logger::Log(0, "Live Guess Predict Called\n");
     int n = results->size();
     for (size_t i = 0; i < n; i++) {
       LiveGuessResult res = (*results)[ i ];
@@ -223,6 +225,7 @@ int main(int argc, char* argv[]) {
     opts.AddOption("f,fold", "Evaluate Perplexity with N-fold cross validation","0");
     opts.AddOption("rs,seed", "The random seed for srand", "0");
     opts.AddOption("repeat,repeat", "Repeat the calculation", "1");
+    opts.AddOption("live,live", "Live Input Mode");
 
     if (!opts.ParseArguments(argc, (const char **)argv) ||
         opts["help"] != NULL) {
@@ -255,6 +258,10 @@ int main(int argc, char* argv[]) {
         Logger::Error(1, "Too few folds!\n");
       }
       return evaluatePerplexityWithCrossFolds( order, folds, repeats, opts );
+    }
+
+    if ( opts["live"] ) {
+      return liveMode( order, opts );
     }
 
     // Build language model.

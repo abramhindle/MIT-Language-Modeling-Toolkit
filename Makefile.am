@@ -71,7 +71,7 @@ mitlminc_HEADERS= \
 	src/NgramLM.h \
 	src/NgramModel.h \
 	src/Types.h \
-	src/CrossFolder.h 
+	src/CrossFolder.h  \
 	src/LiveGuess.h 
 
 
@@ -93,7 +93,7 @@ libmitlm_la_SOURCES = \
 	src/optimize/lbfgs.f \
 	src/optimize/lbfgsb.f \
 	src/WordErrorRateOptimizer.cpp \
-	src/CrossFolder.cpp
+	src/CrossFolder.cpp \
 	src/LiveGuess.cpp
 
 libmitlm_la_LIBADD = $(FLIBS)

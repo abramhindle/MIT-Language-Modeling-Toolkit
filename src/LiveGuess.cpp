@@ -49,6 +49,7 @@
 #include "Smoothing.h"
 #include "CrossFolder.h"
 #include <cstdlib>
+#include "util/Logger.h"
 
 using std::string;
 using std::vector;
@@ -61,9 +62,10 @@ using std::stringstream;
 
 
 std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, int predictions ) {
-  vector<char *> words(256);
+  vector<const char *> words(0);
   int len = strlen(str) + 1;
   char strSpace[len];
+  strcpy( strSpace, str);
   char * p = strSpace;
   // parse words
   while (*p != '\0') {
@@ -74,18 +76,23 @@ std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, in
     if (*p != 0) *p++ = 0;
     words.push_back( token );
   }
+  Logger::Log(0, "We've got these words:\n");
+  for (int i = 0 ; i < words.size(); i ++) {
+    Logger::Log(0, "\tWord: %d - %s\n",i, words[i]);
+  }
   // words are parsed
-  Vocab vocab = lm.vocab();
-  ProbVector probabilities = lm.probs( _order );
-  NgramVector ngrams = lm.model().vectors( _order );
+  const Vocab & vocab = _lm.vocab();
+  const ProbVector & probabilities = _lm.probs( _order );
+  const NgramVector & ngrams = _lm.model().vectors( _order );
   for (int i = 0 ; i < words.size() ; i++ ) {
-    char * sWord = words[i];
+    const char * sWord = words[i];
     VocabIndex vWordI = vocab.Find( sWord );
-    NgramIndex word = ngrams.Find( vWordI );
+    NgramIndex word = ngrams.Find(0,  vWordI );
     Prob prob = probabilities[ word ];
     Logger::Log(0, "Word:\t%s\t%d\t\%d\t%f\n", sWord, vWordI, word, prob);
   }
-    
+  std::auto_ptr< std::vector<LiveGuessResult> > returnValue( new std::vector<LiveGuessResult>() );
+  return returnValue;
   ///* stolen from Perplexity */
   //{
   //  // now make a fake file
