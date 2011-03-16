@@ -60,6 +60,7 @@
 
 
 #include "CrossFolder.h"
+#include "LiveGuess.h"
 
 #define BUFFERSIZE 4096
 

@@ -33,8 +33,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.   //
 ////////////////////////////////////////////////////////////////////////////
 
-#ifndef NGRAMMODEL_H
-#define NGRAMMODEL_H
+#ifndef LIVEGUESS_H
+#define LIVEGUESS_H
 
 #include <vector>
 #include "util/ZFile.h"
@@ -69,14 +69,6 @@ class LiveGuess {
  protected:
   NgramLMBase &       _lm;
   size_t              _order;
-  vector<CountVector> _probCountVectors;
-  vector<CountVector> _bowCountVectors;
-  size_t              _numOOV;
-  size_t              _numWords;
-  size_t              _numZeroProbs;
-  size_t              _numCalls;
-  double              _totLogProb;
-  SharedPtr<Mask>     _mask;
   
  public:
  LiveGuess(NgramLMBase &lm, size_t order=3)
@@ -85,3 +77,5 @@ class LiveGuess {
   std::auto_ptr< std::vector<LiveGuessResult> > predict
   
 };
+
+#endif
