@@ -62,6 +62,33 @@ class LiveGuessResult {
   }
 };
 
+class VocabProb {
+public:
+  double prob;
+  VocabIndex index;
+ VocabProb() : prob(0.0), index(0) {}
+ VocabProb( double iProb, VocabIndex iIndex) 
+   : prob(iProb), index(iIndex) {}
+ VocabProb( const VocabProb & v)
+   : prob(v.prob), index(v.index) {}
+  
+  bool operator<(const VocabProb & b) const {
+    return prob < b.prob;
+  }
+  bool operator>(const VocabProb & b) const {
+    return prob > b.prob;
+  }
+  bool operator==(const VocabProb & b) const {
+    return prob == b.prob && index == b.index;
+  }
+  bool operator!=(const VocabProb & b) const {
+    return prob != b.prob || index != b.index;
+  }
+
+};
+
+
+
 class LiveGuess {
  protected:
   NgramLMBase &       _lm;

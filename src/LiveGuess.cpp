@@ -38,6 +38,8 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+//#include <boost/pending/fibonacci_heap.hpp>
+#include <boost/pending/relaxed_heap.hpp>
 
 #include "util/FastIO.h"
 #include "util/ZFile.h"
@@ -57,6 +59,10 @@ using std::stringstream;
 
 
 #include "LiveGuess.h"
+
+typedef std::less<VocabProb> VCompare;
+typedef boost::typed_identity_property_map<long unsigned int> VID;
+
 
 
 
@@ -82,14 +88,57 @@ std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, in
   }
   // words are parsed
   const Vocab & vocab = _lm.vocab();
-  const ProbVector & probabilities = _lm.probs( _order );
-  const NgramVector & ngrams = _lm.model().vectors( _order );
-  for (int i = 0 ; i < words.size() ; i++ ) {
-    const char * sWord = words[i];
-    VocabIndex vWordI = vocab.Find( sWord );
-    NgramIndex word = ngrams.Find(0,  vWordI );
-    Prob prob = probabilities[ word ];
-    Logger::Log(0, "Word:\t%s\t%d\t\%d\t%f\n", sWord, vWordI, word, prob);
+  for (int i = 0 ; i < words.size() - _order + 1; i++ ) {
+
+    // Now we find the index of the n-gram
+    NgramIndex index = 0;
+    Prob prob = 0;
+    const char * sWord = NULL;
+    for (size_t j = 0; j < _order; ++j) {
+      const ProbVector & probabilities = _lm.probs( j  );
+      const NgramVector & ngrams = _lm.model().vectors( j + 1   );
+      sWord = words[i + j];
+      VocabIndex vWordI = vocab.Find( sWord );
+      index = ngrams.Find(index, vWordI);
+      prob = probabilities[ index ];
+      //Logger::Log(0, "Word:\t%d\t%s\t%d\t\%d\t%e\n", j, sWord, vWordI, index, prob);
+    }
+    Logger::Log(0, "Final:\t%d\t%e\t%s\n", index, prob, sWord);
+    double probpred[predictions];
+    const int size = 10;
+    const VCompare cmp();
+    // const boost::identity_property_map ID();
+    const VID id();
+    // const boost::typed_identity_property_map<long unsigned int> ID();
+    // boost::fibonacci_heap<VocabProb, std::less<VocabProb>, boost::identity_property_map >::fibonacci_heap(size , cmp, ID );
+    // boost::fibonacci_heap<VocabProb, std::less<VocabProb>, boost::typed_identity_property_map<long unsigned int> >::fibonacci_heap heap( size, cmp, id);
+    //boost::fibonacci_heap<VocabProb, VCompare>::fibonacci_heap heap( size, VCompare());
+    boost::relaxed_heap<VocabProb, VCompare>::relaxed_heap heap( (const long unsigned int)10 );//, VCompare());
+
+    //boost::fibonacci_heap<VocabProb> heap( size, cmp );    
+    const NgramVector & ngrams = _lm.model().vectors( _order );
+    const ProbVector & probabilities = _lm.probs( _order - 1  );
+    int count = 0;
+    for (int j = 0; j < vocab.size(); j++) {
+      NgramIndex newIndex = ngrams.Find( index, j);
+      Prob prob = probabilities[ newIndex ];
+      const VocabProb v(prob,j);
+      if ( count < size ) {
+        heap.push( v );
+        count++;
+      } else if ( heap.top() < v ) {
+        heap.pop(); // remove top
+        heap.push( v );
+        // should we update?
+      }
+    }
+    // VocabProb topN[size];    
+    for( int j = 0; !heap.empty() && j < size; j++ ) {
+      VocabProb v = heap.top();
+      heap.pop();
+      Logger::Log(0, "%d\t%e\t%s\n", j, v.prob, vocab[ v.index ]);
+    }
+
   }
   std::auto_ptr< std::vector<LiveGuessResult> > returnValue( new std::vector<LiveGuessResult>() );
   return returnValue;
