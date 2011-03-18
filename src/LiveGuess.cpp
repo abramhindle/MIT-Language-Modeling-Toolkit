@@ -39,7 +39,8 @@
 #include <iostream>
 #include <sstream>
 //#include <boost/pending/fibonacci_heap.hpp>
-#include <boost/pending/relaxed_heap.hpp>
+//#include <boost/pending/relaxed_heap.hpp>
+#include <algorithm>
 
 #include "util/FastIO.h"
 #include "util/ZFile.h"
@@ -61,7 +62,7 @@ using std::stringstream;
 #include "LiveGuess.h"
 
 typedef std::less<VocabProb> VCompare;
-typedef boost::typed_identity_property_map<long unsigned int> VID;
+//typedef boost::typed_identity_property_map<long unsigned int> VID;
 
 
 
@@ -108,13 +109,14 @@ std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, in
     const int size = 10;
     const VCompare cmp();
     // const boost::identity_property_map ID();
-    const VID id();
+    //const VID id();
     // const boost::typed_identity_property_map<long unsigned int> ID();
     // boost::fibonacci_heap<VocabProb, std::less<VocabProb>, boost::identity_property_map >::fibonacci_heap(size , cmp, ID );
     // boost::fibonacci_heap<VocabProb, std::less<VocabProb>, boost::typed_identity_property_map<long unsigned int> >::fibonacci_heap heap( size, cmp, id);
     //boost::fibonacci_heap<VocabProb, VCompare>::fibonacci_heap heap( size, VCompare());
-    boost::relaxed_heap<VocabProb, VCompare>::relaxed_heap heap( (const long unsigned int)10 );//, VCompare());
-
+    //boost::relaxed_heap<VocabProb, VCompare>::relaxed_heap heap( (const long unsigned int)10 );//, VCompare());
+    vector<VocabProb> heap(0);
+    make_heap (heap.begin(),heap.end());
     //boost::fibonacci_heap<VocabProb> heap( size, cmp );    
     const NgramVector & ngrams = _lm.model().vectors( _order );
     const ProbVector & probabilities = _lm.probs( _order - 1  );
@@ -124,18 +126,18 @@ std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, in
       Prob prob = probabilities[ newIndex ];
       const VocabProb v(prob,j);
       if ( count < size ) {
-        heap.push( v );
+        heap.push_back( v ); push_heap( heap.begin(), heap.end() );
         count++;
-      } else if ( heap.top() < v ) {
-        heap.pop(); // remove top
-        heap.push( v );
+      } else if ( heap.front() < v ) {
+        // this is dumb
+        pop_heap (heap.begin(),heap.end());  heap.pop_back();
+        heap.push_back( v ); push_heap( heap.begin(), heap.end() );
         // should we update?
       }
     }
-    // VocabProb topN[size];    
-    for( int j = 0; !heap.empty() && j < size; j++ ) {
-      VocabProb v = heap.top();
-      heap.pop();
+    sort_heap( heap.begin(), heap.end() ); // heap now is internally sorted 
+    for( int j = 0; j < heap.size(); j++) {
+      VocabProb v = heap[ j ];
       Logger::Log(0, "%d\t%e\t%s\n", j, v.prob, vocab[ v.index ]);
     }
 
