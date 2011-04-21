@@ -73,7 +73,7 @@ class VocabProb {
 public:
   double prob;
   VocabIndex index;
-  NGramIndex nindex;
+  NgramIndex nindex;
  VocabProb() : prob(0.0), index(0) {}
  VocabProb( double iProb, VocabIndex iIndex, NgramIndex nIndex) 
    : prob(iProb), index(iIndex), nindex(nIndex) {}
