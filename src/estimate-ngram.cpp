@@ -172,11 +172,15 @@ int liveMode(int order,  CommandOptions & opts) {
     Logger::Log(0, "Live Guess Input:%s\n", buffer);
     std::auto_ptr< std::vector<LiveGuessResult> > results = eval.Predict( buffer , 50 );
     Logger::Log(0, "Live Guess Predict Called\n");
-    int n = results->size();
+    int n = (*results).size();
+    Logger::Log(0, "Size %d\n", n);
     for (size_t i = 0; i < n; i++) {
       LiveGuessResult res = (*results)[ i ];
       Logger::Log(0, "\t%f\t%s\n", res.probability, res.str);
-    }    
+      delete[] res.str;
+      res.str = NULL;
+    } 
+    
   }
   
   // get command

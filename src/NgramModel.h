@@ -111,9 +111,9 @@ public:
     const VocabVector &words(size_t o) const    { return _vectors[o].words(); }
     const IndexVector &hists(size_t o) const    { return _vectors[o].hists(); }
     const IndexVector &backoffs(size_t o) const { return _backoffVectors[o];}
-
-protected:
     NgramIndex _Find(const VocabIndex *words, size_t wordsLen) const;
+protected:
+
     void       _ComputeBackoffs();
     void       _LoadFrequency(vector<DoubleVector> &freqVectors,
                               ZFile &corpusFile, size_t maxSize=0) const;
