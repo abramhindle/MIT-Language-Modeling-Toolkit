@@ -190,11 +190,11 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
   //boost::fibonacci_heap<VocabProb> heap( size, cmp );   
   //Logger::Log(0, "Vectors! %d\n",_lm.model()._vectors.size());  
 
-  int order = _order - 1 ;
+  int order = _order  - 1;
   const NgramVector & ngrams = _lm.model().vectors( order  );
   //Logger::Log(0, "NGramSize %d\n", ngrams.size());
 
-  const ProbVector & probabilities = _lm.probs( order   );
+  const ProbVector & probabilities = _lm.probs( order    );
   int count = 0;
   //Logger::Log(0, "Find probabilities %d\n",vocab.size());
   VocabVector wvocab = _lm.words( order  );
@@ -213,9 +213,9 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
     }
     //Logger::Log(0,"[%d] %d %d %d \n",newIndex,vwords[0],vwords[1],vwords[2]);
     Prob probRaw = probabilities[ newIndex ];
-    //if (probRaw == 0.0) {
-    //  continue;
-    //}
+    if (probRaw == 0.0) {
+      continue;
+    }
     Prob prob = -1 * log( probRaw ); //biggest is smallest
     //Logger::Log(0, "Heap Prob: %e newIndex: %d\n", prob, newIndex);
 
