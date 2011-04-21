@@ -38,6 +38,8 @@
 
 #include <vector>
 #include "util/ZFile.h"
+#include "util/FastIO.h"
+
 #include "Types.h"
 #include "Vocab.h"
 #include "NgramVector.h"
@@ -51,11 +53,16 @@ class LiveGuessResult {
  public:
   char * str;
   double probability;
-  LiveGuessResult(double prob, char * cstr)
+ LiveGuessResult(double prob, char * cstr, bool dontCopy = false)
     : probability(prob), str(NULL), _size (0) {
     /* ugh hack is there a better way */
     _size = strlen(cstr);
-    str = new char[ _size ];
+    if (!dontCopy) {
+      str = new char[ _size + 1 ];
+      CopyString(str, cstr);
+    } else {
+      str = cstr;
+    }
   }
   ~LiveGuessResult() {
     delete[] str;
@@ -66,9 +73,10 @@ class VocabProb {
 public:
   double prob;
   VocabIndex index;
+  NGramIndex nindex;
  VocabProb() : prob(0.0), index(0) {}
- VocabProb( double iProb, VocabIndex iIndex) 
-   : prob(iProb), index(iIndex) {}
+ VocabProb( double iProb, VocabIndex iIndex, NgramIndex nIndex) 
+   : prob(iProb), index(iIndex), nindex(nIndex) {}
  VocabProb( const VocabProb & v)
    : prob(v.prob), index(v.index) {}
   

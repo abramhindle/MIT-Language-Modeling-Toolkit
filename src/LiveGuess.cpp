@@ -65,8 +65,172 @@ typedef std::less<VocabProb> VCompare;
 //typedef boost::typed_identity_property_map<long unsigned int> VID;
 
 
+// double forwardish(double * forward, /* vocab.size() * numobs */
+//                   const int numobs, 
+//                   const NgramVector & ngrams,
+//                   const ProbVector & probabilities) {
+//   int numstates = vocab.size();
+//   int nn =  numstates * numobs;
+//   for (int i = 0; i < nn; i++) {
+//     forward[i] = 0.0;
+//   }
+//   forward[0] = 1.0;
+//   for (int i = 1; i < numobs; i++) {
+//     for (int s = 1; i < numstates; s++) {
+//       double sum = 0.0;
+//       for (int p = 0; p < numstates; p++) { // previous
+//         sum += forward[ ] * 
+//       }
+//     }
+//   }
+// }
+//   
+
+void mkHeap(vector<VocabProb> & heap) {
+  // I hate the STL heaps
+  make_heap (heap.begin(),heap.end());  
+}
+void popHeap( vector<VocabProb> & heap ) {
+  pop_heap (heap.begin(),heap.end());  
+  heap.pop_back();
+}
+void pushHeap( vector<VocabProb> & heap, VocabProb & v) {
+  heap.push_back( v ); 
+  push_heap( heap.begin(), heap.end() );
+}
+void sortHeap( vector<VocabProb> & heap ) { 
+  sort_heap( heap.begin(), heap.end() ); // heap now is internally sorted 
+}
+
+// WARNING THIS ALLOCATES MEMORY //
+char * joinVectorOfCStrings( vector<const char*> & words ) {
+  int len = 1; // null term
+  for (int i = 0; i < words.size(); i++) {
+    len += strlen( words[i] );
+  }
+  if (words.size() > 0) {
+    len += words.size() - 1;
+  }
+  char * v = new char[ len ];
+  char * o = v;
+  for (int i = 0; i < words.size(); i++) {
+    char * word = words[i];
+    int wlen = strlen( word );
+    CopyString( o, word );
+    o += wlen; // jump to end of word
+    if (i < words.size() - 1) {
+      *o = ' '; //add space
+    }
+    o++; // skip space
+  }
+  return v;
+}
+
+NgramIndex findIndex( 
+                     const vector<const char *> & words,
+                     const NgramLMBase & _lm, 
+                     const int _order,  
+                     const Vocab & vocab ) {
+
+  NgramIndex index = 0;
+  for (int i = 0; i < _order - 1; ++i) {
+    const ProbVector & probabilities = _lm.probs( i  );
+    const NgramVector & ngrams = _lm.model().vectors( i + 1   );
+    const char * sWord = words[ words.size() - (_order - 1) + i ];
+    VocabIndex vWordI = vocab.Find( sWord );
+    index = ngrams.Find(index, vWordI);
+    Prob prob = probabilities[ index ];
+    Logger::Log(0, "Word:\t%d\t%s\t%d\t\%d\t%e\n", i, sWord, vWordI, index, prob);    
+  }
+  return index;
+}
 
 
+
+// Returns a vector of LiveGuessResults
+// warning: words is mutated temporarily
+std::auto_ptr< std::vector<LiveGuessResult> > 
+forwardish(Vector<const char *> & words, // the current words can be empty
+           const double currentProb,
+           const int size, // how many to grab
+           const int depthLeft,
+           const NgramIndex index,
+           const NgramLMBase & _lm, 
+           const int _order,  
+           const Vocab & vocab ) {
+  
+  
+  // Index contains the last ngram word 
+
+  vector<VocabProb> heap(0);
+
+  mkHeap(heap);
+  //boost::fibonacci_heap<VocabProb> heap( size, cmp );    
+  const NgramVector & ngrams = _lm.model().vectors( _order );
+  const ProbVector & probabilities = _lm.probs( _order - 1  );
+  int count = 0;
+  for (int j = 0; j < vocab.size(); j++) {
+    NgramIndex newIndex = ngrams.Find( index, j);
+    Prob prob = probabilities[ newIndex ];
+    const VocabProb v( -1 * prob,j, newIndex);
+    if ( count < size ) {
+      heap.push_back( v ); //push_heap( heap.begin(), heap.end() );
+      count++;
+      if (count == size) {
+        mkHeap( heap );
+      }
+      // this is irritating, basically it means the highest rank stuff
+      // will be in the list and we only kick out the lowest ranked stuff
+      // (which will be the GREATEST of what is already there)
+    } else if ( -1 * heap.front().prob < prob ) {
+      // this is dumb        
+      // remove the least element
+      popHeap( heap );
+      pushHeap( heap, v );
+      // should we update?
+    }
+  }
+  sortHeap( heap );
+
+  std::vector<LiveGuessResult> & resVector = new std::vector<LiveGuessResult>();
+  for( int j = 0; j < heap.size(); j++) {
+    VocabProb v = heap[ j ];
+    Prob prob = -1 * v.prob;
+    prob += currentProb;
+    words.push_back( vocab[ v.index ] ); // add 
+    resVector.push_back( LiveGuessResult( prob , joinVectorOfCStrings( words ) , true)); // dont copy cuz it is already allocated
+    word.pop_back(); // and restore
+  }
+  
+  if ( depthLeft == 0 ) {
+    // return what we have
+  } else {
+  for( int j = 0; j < heap.size(); j++) {
+    VocabProb v = heap[ j ];
+    Prob prob = -1 * v.prob;
+    NgramIndex nindex = v.nindex;
+    prob += currentProb;
+    words.push_back( vocab[ v.index ] );
+    std::auto_ptr< std::vector<LiveGuessResult> > r = 
+      forwardish( words, 
+                  prob,
+                  size,
+                  depthLeft - 1,
+                  nindex,
+                  _lm, 
+                  _order,  
+                  vocab );
+    word.pop_back(); // and restore
+    for (int i = 0; i < r.size(); i++) {
+      resVector.push_back( r[i] );
+    }
+  }
+
+
+  std::auto_ptr< std::vector<LiveGuessResult> > returnValues( resVector );
+  
+
+}
 
 std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, int predictions ) {
   vector<const char *> words(0);
