@@ -49,23 +49,20 @@ using std::vector;
 /* Automatically in the heap */
 class LiveGuessResult {
  protected:
-  int _size;
+  //int _size;
  public:
   char * str;
   double probability;
- LiveGuessResult(double prob, char * cstr, bool dontCopy = false)
-    : probability(prob), str(NULL), _size (0) {
+ LiveGuessResult(double prob, char * cstr)
+   : probability(prob), str(cstr) {
     /* ugh hack is there a better way */
-    _size = strlen(cstr);
-    if (!dontCopy) {
-      str = new char[ _size + 1 ];
-      CopyString(str, cstr);
-    } else {
-      str = cstr;
-    }
+    //_size = strlen(cstr);
+    //str = new char[ _size + 1 ];
+    //CopyString(str, cstr);
+    //str[_size] = '\0';
   }
   ~LiveGuessResult() {
-    delete[] str;
+    //delete[] str;
   }
 };
 

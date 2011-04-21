@@ -113,15 +113,17 @@ char * joinVectorOfCStrings( std::vector<const char*> & words ) {
   }
   char * v = new char[ len ];
   char * o = v;
-  for (int i = 0; i < words.size(); i++) {
+  int lastIndex = words.size() - 1;
+  for (int i = 0; i <= lastIndex; i++) {
     const char * word = words[i];
     int wlen = strlen( word );
     CopyString( o, word );
     o += wlen; // jump to end of word
-    if (i < words.size() - 1) {
-      *o = ' '; //add space
+    if (i != lastIndex) {
+      *o++ = ' '; //add space and skip it
+    } else {
+      *o++ = '\0';
     }
-    o++; // skip space
   }
   return v;
 }
@@ -142,6 +144,7 @@ NgramIndex findIndex(
     Prob prob = probabilities[ index ];
     Logger::Log(0, "Word:\t%d\t%s\t%d\t\%d\t%e\n", i, sWord, vWordI, index, prob);    
   }
+  Logger::Log(0, "Got index %d\n", index);
   return index;
 }
 
@@ -162,6 +165,8 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
   
   // Index contains the last ngram word 
 
+  Logger::Log(0, "Forwardish [%d]\n", index);
+
   vector<VocabProb> heap(0);
 
   mkHeap(heap);
@@ -169,11 +174,16 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
   const NgramVector & ngrams = _lm.model().vectors( _order );
   const ProbVector & probabilities = _lm.probs( _order - 1  );
   int count = 0;
+  Logger::Log(0, "Find probabilities\n");
+
   for (int j = 0; j < vocab.size(); j++) {
-    NgramIndex newIndex = ngrams.Find( index, j);
-    Prob prob = probabilities[ newIndex ];
-    const VocabProb v( -1 * prob,j, newIndex);
+    NgramIndex newIndex = ngrams.Find( index, j );
+    Prob prob = -1 * log(probabilities[ newIndex ]); // biggest is smallest
+    Logger::Log(0, "Heap Prob: %e newIndex: %d\n", prob, newIndex);
+
+    const VocabProb v( prob,j, newIndex);
     if ( count < size ) {
+      Logger::Log(0, "Heap DEFAULT Insert: %e\n", prob);
       heap.push_back( v ); //push_heap( heap.begin(), heap.end() );
       count++;
       if (count == size) {
@@ -182,30 +192,47 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
       // this is irritating, basically it means the highest rank stuff
       // will be in the list and we only kick out the lowest ranked stuff
       // (which will be the GREATEST of what is already there)
-    } else if ( -1 * heap.front().prob < prob ) {
+      // 
+    } else if (  heap.front().prob >  prob ) {
       // this is dumb        
       // remove the least element
       popHeap( heap );
+      Logger::Log(0, "Heap Insert: %e\n", prob);
       pushHeap( heap, v );
       // should we update?
     }
   }
   sortHeap( heap );
+  //Logger::Log(0, "We've sorted them! All %d!\n", heap.size());
+  for (int j = 0; j < heap.size(); j++) {
+    Logger::Log(0, "Heap [%d] [%e] [%s]\n",j,heap[j].prob, vocab[heap[j].index]);    
+  }
 
   std::vector<LiveGuessResult> * resVector = new std::vector<LiveGuessResult>();
+  
   for( int j = 0; j < heap.size(); j++) {
     VocabProb v = heap[ j ];
-    Prob prob = -1 * v.prob;
+    Prob prob = v.prob;
     prob += currentProb;
     const char * word = vocab[ v.index ];
-    words.push_back( word ); // add 
-    resVector->push_back( LiveGuessResult( prob , joinVectorOfCStrings( words ) , true)); // dont copy cuz it is already allocated
-    words.pop_back(); // and restore
+    //Logger::Log(0, "Word: [[%s]]\n", word);
+    vector<const char *> ourWords(words);
+    ourWords.push_back( word ); // add 
+    //Logger::Log(0, "Words size 1 [%d]\n", words.size());
+    //Logger::Log(0, "Words size 2 [%d]\n", ourWords.size());
+    char * str = joinVectorOfCStrings( ourWords );
+    //Logger::Log(0, "We got %e %e [[%s]]\n",currentProb, prob, str);
+    resVector->push_back( LiveGuessResult( prob , str  )); // dont copy cuz it is already allocated
+    // delete[] str;
   }
+  Logger::Log(0, "Pushed our current choices\n");
   
-  if ( depthLeft == 0 ) {
+  if ( depthLeft <= 0 ) {
     // return what we have
+    Logger::Log(0, "Depth == 0\n");
+
   } else {
+    Logger::Log(0, "Let's recurse!\n");
     for( int j = 0; j < heap.size(); j++) {
       VocabProb v = heap[ j ];
       Prob prob = -1 * v.prob;
@@ -286,7 +313,7 @@ std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, in
   std::auto_ptr< std::vector<LiveGuessResult> > returnValues = forwardish(
                                                                           ourWords,
                                                                           0.0,
-                                                                          4, // 4 words deep
+                                                                          20, // 4 words deep
                                                                           4, // 4 words deep?
                                                                           index,
                                                                           _lm,
