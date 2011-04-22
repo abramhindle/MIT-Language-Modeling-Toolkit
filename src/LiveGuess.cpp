@@ -112,7 +112,7 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
            const double currentProb, // log prob
            const int size, // how many to grab
            const int depthLeft,
-           const NgramLMBase & _lm, 
+           const NgramLM & _lm, 
            const int _order,  
            const Vocab & vocab ) {
   
@@ -123,43 +123,51 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
   //Logger::Log(0, "Forwardish [%d] [%d]\n", depthLeft, index);
 
   VocabIndex vwords[ _order ];
-  int n = (words.size() < (_order - 1))?words.size():_order;
+  //int n = (words.size() < (_order - 1))?words.size():_order;
+
+  //for (int i = words.size() - _order - 1; i < words.size(); i++) {
+  //  if ( i >= 0) {
+  //    Logger::Log(0,"Word: %d %s\n",i,words[i]);
+  //  }
+  //}
   
-  for (int i = 0; i < n; i++) {
+  for (int i = 1; i < _order; i++) {
     int j = words.size() - _order + i;
     if (j < 0) {
-      vwords[i] = Vocab::EndOfSentence;
+      vwords[i - 1] = Vocab::EndOfSentence;
     } else {
-      vwords[i] = vocab.Find( words[words.size() - _order + i] );
+      vwords[i - 1] = vocab.Find( words[ j ] );
     }
   }
 
-
+  
 
   vector<VocabProb> heap(0);
 
   mkHeap(heap);
-  //boost::fibonacci_heap<VocabProb> heap( size, cmp );   
-  //Logger::Log(0, "Vectors! %d\n",_lm.model()._vectors.size());  
 
-  int order = _order - 1 ;
-  const NgramVector & ngrams = _lm.model().vectors( order  );
-  //Logger::Log(0, "NGramSize %d\n", ngrams.size());
-
-  const ProbVector & probabilities = _lm.probs( order   );
+  const ProbVector & probabilities = _lm.probs(  _order - 2 ) ;// _order - 2  );
+  const CountVector & counts = _lm.counts( _order );
+  
   int count = 0;
   //Logger::Log(0, "Find probabilities %d\n",vocab.size());
-  VocabVector wvocab = _lm.words( order  );
+
   for (int j = 0; j < vocab.size(); j++) {
     VocabIndex vWordI = j;//vocab[j];
-    vwords[order-1] = j;
-    NgramIndex newIndex = _lm.model()._Find( vwords, order);
-
+    vwords[ _order - 1 ] = j;
+    NgramIndex newIndex = _lm.model()._Find( vwords, _order );
+    
     if (newIndex == -1) { // not legit :(
       continue;
     }
     Prob probRaw = probabilities[ newIndex ];
     Prob prob = -1 * log( probRaw ); //biggest is smallest
+
+    //Prob prob = (probRaw == 0.0)?10000:(-1 * log( probRaw )); //biggest is smallest
+    //Prob probRaw = (counts[newIndex]==0)?1.0:counts[newIndex]/vocab.size()
+    //Prob prob = -1 * log(probRaw);
+    //Prob prob = -1 * counts[newIndex];
+    //Logger::Log(0, "Prob %e\n",prob);
 
     const VocabProb v( prob,j, newIndex);
     if ( count < size ) {
@@ -245,34 +253,8 @@ std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, in
     if (*p != 0) *p++ = 0;
     words.push_back( token );
   }
-  //Logger::Log(0, "We've got these words:\n");
-  //for (int i = 0 ; i < words.size(); i ++) {
-    //Logger::Log(0, "\tWord: %d - %s\n",i, words[i]);
-  //}
   const Vocab & vocab = _lm.vocab();
 
-  // words are parsed
-    // const Vocab & vocab = _lm.vocab();
-    // for (int i = 0 ; i < words.size() - _order + 1; i++ ) {
-    // 
-    //   // Now we find the index of the n-gram
-    //   NgramIndex index = 0;
-    //   Prob prob = 0;
-    //   const char * sWord = NULL;
-    //   for (size_t j = 0; j < _order; ++j) {
-    //     const ProbVector & probabilities = _lm.probs( j  );
-    //     const NgramVector & ngrams = _lm.model().vectors( j + 1   );
-    //     sWord = words[i + j];
-    //     VocabIndex vWordI = vocab.Find( sWord );
-    //     index = ngrams.Find(index, vWordI);
-    //     prob = probabilities[ index ];
-    //     //Logger::Log(0, "Word:\t%d\t%s\t%d\t\%d\t%e\n", j, sWord, vWordI, index, prob);
-    //   }
-    //   Logger::Log(0, "Final:\t%d\t%e\t%s\n", index, prob, sWord);
-    // 
-    // }
-
-  //NgramIndex index = findIndex( words, _lm, _order, vocab );
   vector<const char *> ourWords(words); // clone it
   std::auto_ptr< std::vector<LiveGuessResult> > returnValues = forwardish(
                                                                           ourWords,
@@ -285,66 +267,4 @@ std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, in
   sortLiveGuesses( *returnValues );
   return returnValues;
                                                                           
-  
-    // // now find the index of the last word if it was order - 1 ?
-    // NgramIndex index = 0;
-    // for (int i = 0; i < _order - 1; ++i) {
-    //   const ProbVector & probabilities = _lm.probs( i  );
-    //   const NgramVector & ngrams = _lm.model().vectors( i + 1   );
-    //   const char * sWord = words[ words.size() - (_order - 1) + i ];
-    //   VocabIndex vWordI = vocab.Find( sWord );
-    //   index = ngrams.Find(index, vWordI);
-    //   Prob prob = probabilities[ index ];
-    //   Logger::Log(0, "Word:\t%d\t%s\t%d\t\%d\t%e\n", i, sWord, vWordI, index, prob);    
-    // }
-    // double probpred[predictions];
-    // const int size = 10;
-    // // const VCompare cmp();
-    // // const boost::identity_property_map ID();
-    // //const VID id();
-    // // const boost::typed_identity_property_map<long unsigned int> ID();
-    // // boost::fibonacci_heap<VocabProb, std::less<VocabProb>, boost::identity_property_map >::fibonacci_heap(size , cmp, ID );
-    // // boost::fibonacci_heap<VocabProb, std::less<VocabProb>, boost::typed_identity_property_map<long unsigned int> >::fibonacci_heap heap( size, cmp, id);
-    // //boost::fibonacci_heap<VocabProb, VCompare>::fibonacci_heap heap( size, VCompare());
-    // //boost::relaxed_heap<VocabProb, VCompare>::relaxed_heap heap( (const long unsigned int)10 );//, VCompare());
-    // vector<VocabProb> heap(0);
-    // // I hate the STL heaps
-    // make_heap (heap.begin(),heap.end());
-    // //boost::fibonacci_heap<VocabProb> heap( size, cmp );    
-    // const NgramVector & ngrams = _lm.model().vectors( _order );
-    // const ProbVector & probabilities = _lm.probs( _order - 1  );
-    // int count = 0;
-    // for (int j = 0; j < vocab.size(); j++) {
-    //   NgramIndex newIndex = ngrams.Find( index, j);
-    //   Prob prob = probabilities[ newIndex ];
-    //   const VocabProb v( -1 * prob,j);
-    //   if ( count < size ) {
-    //     heap.push_back( v ); //push_heap( heap.begin(), heap.end() );
-    //     count++;
-    //     if (count == size) {
-    //         make_heap (heap.begin(),heap.end());
-    //     }
-    //     // this is irritating, basically it means the highest rank stuff
-    //     // will be in the list and we only kick out the lowest ranked stuff
-    //     // (which will be the GREATEST of what is already there)
-    //   } else if ( -1 * heap.front().prob < prob ) {
-    //     // this is dumb        
-    //     pop_heap (heap.begin(),heap.end());  heap.pop_back();
-    //     heap.push_back( v ); push_heap( heap.begin(), heap.end() );
-    //     // should we update?
-    //   }
-    // }
-    // sort_heap( heap.begin(), heap.end() ); // heap now is internally sorted 
-    // for( int j = 0; j < heap.size(); j++) {
-    //   VocabProb v = heap[ j ];
-    //   Logger::Log(0, "%d\t%e\t%s\n", j, log( -1 * v.prob ) / log(10), vocab[ v.index ]);
-    // }
-    // 
-    // // left to do:
-    // // - iterate over a few possibilities and chains
-    // // - return those results
-    // 
-    // 
-    // std::auto_ptr< std::vector<LiveGuessResult> > returnValue( new std::vector<LiveGuessResult>() );
-    // return returnValue;
 }
