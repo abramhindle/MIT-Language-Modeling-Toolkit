@@ -1,0 +1,20 @@
+a
+b
+c
+d
+e
+f
+;
+a [ b [ c ] ]
+b [ a ]
+a [ [ [ b ] ] ]
+a [ a ] [ a ]
+a [ b ] [ b ]
+a [ c ] [ a ]
+e [ e ] [ e ]
+e [ a ] ;
+a ;
+b ;
+open a ; read a ; close a
+open b ; read b ; close b
+open a ; open b ; read a ; write a ; write b ; close a ; close b ;

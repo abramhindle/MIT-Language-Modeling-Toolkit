@@ -96,11 +96,11 @@ public:
 
 class LiveGuess {
  protected:
-  NgramLMBase &       _lm;
+  NgramLM &       _lm;
   size_t              _order;
   
  public:
- LiveGuess(NgramLMBase &lm, size_t order=3)
+ LiveGuess(NgramLM &lm, size_t order=3)
    : _lm(lm), _order(order) { };
   
   std::auto_ptr< std::vector<LiveGuessResult> > Predict( char * str, int predictions );
