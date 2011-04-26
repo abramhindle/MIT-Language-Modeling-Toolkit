@@ -155,7 +155,7 @@ int liveMode(int order,  CommandOptions & opts) {
   vector<double> perps;  
   vector<double> logs;  
   char buffer[BUFFERSIZE];
-  Logger::Log(1, "Loading eval set %s...\n", opts["text"]); // [i].c_str());
+  Logger::Log(1, "[LL] Loading eval set %s...\n", opts["text"]); // [i].c_str());
   NgramLM lm(order);
   lm.Initialize(opts["vocab"], AsBoolean(opts["unk"]), 
                 opts["text"], opts["counts"], 
@@ -165,7 +165,7 @@ int liveMode(int order,  CommandOptions & opts) {
 
   Logger::Log(0, "Live Guess:\n");
   LiveGuess eval(lm, order);
-  
+  fflush(stdout);
   // issue: how many entries to predict?
   
   while( getline( stdin, buffer, BUFFERSIZE ) ) {    
@@ -174,13 +174,16 @@ int liveMode(int order,  CommandOptions & opts) {
     Logger::Log(0, "Live Guess Predict Called\n");
     int n = (*results).size();
     Logger::Log(0, "Size %d\n", n);
+    Logger::Log(0, "Live Guess Rankings\n");
+
     for (size_t i = 0; i < n; i++) {
       LiveGuessResult res = (*results)[ i ];
       Logger::Log(0, "\t%f\t%s\n", res.probability, res.str);
       delete[] res.str;
       res.str = NULL;
     } 
-    
+    Logger::Log(0, "Live Guess Rankings Done\n");
+    fflush(stdout);    
   }
   
   // get command
