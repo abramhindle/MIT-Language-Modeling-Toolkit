@@ -161,6 +161,9 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
       continue;
     }
     Prob probRaw = probabilities[ newIndex ];
+    if (probRaw == 0.0) {
+      continue;
+    }
     Prob prob = -1 * log( probRaw ); //biggest is smallest
 
     //Prob prob = (probRaw == 0.0)?10000:(-1 * log( probRaw )); //biggest is smallest
