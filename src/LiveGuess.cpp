@@ -1,3 +1,4 @@
+
 ////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2011, Abram Hindle, Prem Devanbu and UC Davis            //
 // Copyright (c) 2008, Massachusetts Institute of Technology              //
@@ -146,7 +147,7 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
 
   mkHeap(heap);
 
-  const ProbVector & probabilities = _lm.probs(  _order - 2 ) ;// _order - 2  );
+  const ProbVector & probabilities = _lm.probs(  _order ) ;// _order - 2  );
   const CountVector & counts = _lm.counts( _order );
   
   int count = 0;

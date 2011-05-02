@@ -163,6 +163,9 @@ int liveMode(int order,  CommandOptions & opts) {
   Logger::Log(0, "Parameters:\n");
   ParamVector params(lm.defParams());
 
+  lm.Estimate(params);
+
+
   Logger::Log(0, "Live Guess:\n");
   LiveGuess eval(lm, order);
   fflush(stdout);
