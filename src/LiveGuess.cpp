@@ -242,7 +242,7 @@ void sortLiveGuesses( std::vector<LiveGuessResult> & v ) {
   sort (v.begin(), v.end(), mySortLiveGuessFunction); 
 }
 
-std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, int predictions ) {
+std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, int predictions) {
   vector<const char *> words(0);
   int len = strlen(str) + 1;
   char strSpace[len];
@@ -258,7 +258,6 @@ std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, in
     words.push_back( token );
   }
   const Vocab & vocab = _lm.vocab();
-
   vector<const char *> ourWords(words); // clone it
   std::auto_ptr< std::vector<LiveGuessResult> > returnValues = forwardish(
                                                                           ourWords,

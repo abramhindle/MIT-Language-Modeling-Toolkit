@@ -64,7 +64,7 @@ PerplexityOptimizer::ComputeEntropy(const ParamVector &params) {
     // Compute total log probability and num zero probs.
     _totLogProb = 0.0;
     _numZeroProbs = 0;
-    for (size_t o = 0; o <= _order; o++) {
+    for (size_t o = 0; o <= _order; o++) { 
         // assert(alltrue(counts == 0 || probs > 0));
         // _totLogProb += dot(log(probs), counts, counts > 0);
         // _totLogProb += sum((log(probs) * counts)[counts > 0]);
