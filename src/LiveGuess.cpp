@@ -131,17 +131,18 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
   //    Logger::Log(0,"Word: %d %s\n",i,words[i]);
   //  }
   //}
-  
+
+  //vwords[0] to _order -1 are filled in
+  // if it's small EndOfSentence starts it..
   for (int i = 1; i < _order; i++) {
     int j = words.size() - _order + i;
     if (j < 0) {
-      vwords[i - 1] = Vocab::EndOfSentence;
+      vwords[i - 1] = Vocab::Invalid; // probably should be end of sentence
     } else {
       vwords[i - 1] = vocab.Find( words[ j ] );
     }
   }
 
-  
 
   vector<VocabProb> heap(0);
 
