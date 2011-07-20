@@ -378,7 +378,7 @@ NgramModel::SaveLM(const vector<ProbVector> &probVectors,
     // Write lower order n-grams with probabilities and backoff weights.
     StrVector   ngramWords(size() - 1);
     std::string lineBuffer;
-    lineBuffer.resize(size() * 32); // 32 chars/word.
+    lineBuffer.resize(size() * 256); // 32 chars/word.
     for (size_t o = 1; o < size() - 1; o++) {
         fprintf(lmFile, "\n\\%lu-grams:\n", (unsigned long)o);
         const ProbVector &probs = probVectors[o];
