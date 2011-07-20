@@ -1,3 +1,4 @@
+
 ////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2011, Abram Hindle, Prem Devanbu and UC Davis            //
 // Copyright (c) 2008, Massachusetts Institute of Technology              //
@@ -130,23 +131,24 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
   //    Logger::Log(0,"Word: %d %s\n",i,words[i]);
   //  }
   //}
-  
+
+  //vwords[0] to _order -1 are filled in
+  // if it's small EndOfSentence starts it..
   for (int i = 1; i < _order; i++) {
     int j = words.size() - _order + i;
     if (j < 0) {
-      vwords[i - 1] = Vocab::EndOfSentence;
+      vwords[i - 1] = Vocab::Invalid; // probably should be end of sentence
     } else {
       vwords[i - 1] = vocab.Find( words[ j ] );
     }
   }
 
-  
 
   vector<VocabProb> heap(0);
 
   mkHeap(heap);
 
-  const ProbVector & probabilities = _lm.probs(  _order - 2 ) ;// _order - 2  );
+  const ProbVector & probabilities = _lm.probs(  _order ) ;// _order - 2  );
   const CountVector & counts = _lm.counts( _order );
   
   int count = 0;
@@ -241,7 +243,7 @@ void sortLiveGuesses( std::vector<LiveGuessResult> & v ) {
   sort (v.begin(), v.end(), mySortLiveGuessFunction); 
 }
 
-std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, int predictions ) {
+std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, int predictions) {
   vector<const char *> words(0);
   int len = strlen(str) + 1;
   char strSpace[len];
@@ -257,7 +259,6 @@ std::auto_ptr< std::vector<LiveGuessResult> > LiveGuess::Predict( char * str, in
     words.push_back( token );
   }
   const Vocab & vocab = _lm.vocab();
-
   vector<const char *> ourWords(words); // clone it
   std::auto_ptr< std::vector<LiveGuessResult> > returnValues = forwardish(
                                                                           ourWords,
