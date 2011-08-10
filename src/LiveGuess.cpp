@@ -202,9 +202,12 @@ forwardish(std::vector<const char *> & words, // the current words can be empty
     Prob prob = v.prob;
     prob += currentProb;
     const char * word = vocab[ v.index ];
-    vector<const char *> ourWords(1);
+    vector<const char *> ourWords(words);
     ourWords.push_back( word ); // add 
     char * str = joinVectorOfCStrings( ourWords ); // Remember to deallocate later :(
+    
+    /*char * str = new char[strlen(word)+1];
+    CopyString(str, word); */
     resVector->push_back( LiveGuessResult( prob , str  )); 
   }
   
